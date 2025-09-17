@@ -1,16 +1,13 @@
-import React, { Component } from "react";
+import React from "react";
 
-const NavBar = ({ totalCounters }) => {
+function Navbar() {
   return (
-    <nav className="navbar navbar-light bg-light">
-      <a className="navbar-brand" href="#">
-        Navbar{" "}
-        <span className="badge badge-pill badge-secondary">
-          {totalCounters}
-        </span>
-      </a>
+    <nav style={{ padding: "10px", backgroundColor: "#f4f4f4" }}>
+      <a href="/" style={{ marginRight: "15px" }}>Home</a>
+      <a href="/about">About</a>
     </nav>
   );
-};
+}
 
-export default NavBar;
+export default Navbar;
+
