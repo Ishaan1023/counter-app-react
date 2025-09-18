@@ -25,33 +25,22 @@ jobs:
         export NODE_OPTIONS=--openssl-legacy-provider
         npm run build
       
-    - name: Deploy to EC2
-      uses: appleboy/ssh-action@v0.1.7
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          sudo rm -rf /usr/share/nginx/html/*
-          mkdir -p ~/deploy-temp
-          
-    - name: Copy build files to EC2
-      uses: appleboy/scp-action@v0.1.4
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        source: "build/*"
-        target: "~/deploy-temp/"
+    - name: Setup SSH and Deploy
+      run: |
+        # Setup SSH
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
         
-    - name: Move files and restart nginx
-      uses: appleboy/ssh-action@v0.1.7
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          sudo cp -r ~/deploy-temp/build/* /usr/share/nginx/html/
+        # Deploy files
+        scp -i ~/.ssh/deploy_key -r build/* ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/deploy-temp/
+        
+        # Move files and restart nginx
+        ssh -i ~/.ssh/deploy_key ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} '
+          sudo rm -rf /usr/share/nginx/html/*
+          sudo cp -r ~/deploy-temp/* /usr/share/nginx/html/
           rm -rf ~/deploy-temp
           sudo systemctl restart nginx
+        '
 
