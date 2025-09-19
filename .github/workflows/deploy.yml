@@ -1,12 +1,15 @@
 name: Deploy React App to Amazon Linux EC2
+
 on:
   push:
     branches: [main]
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    
     steps:
-    - name: Checkout repo
+    - name: Checkout code
       uses: actions/checkout@v4
       
     - name: Setup Node.js
@@ -29,26 +32,11 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H 3.208.9.63 >> ~/.ssh/known_hosts
         
-    - name: Debug secrets and SSH setup
-      run: |
-        echo "EC2_HOST: ${{ secrets.EC2_HOST }}"
-        echo "EC2_USERNAME: ${{ secrets.EC2_USERNAME }}"
-        echo "SSH key file exists:"
-        ls -la ~/.ssh/id_rsa
-        echo "SSH key first line:"
-        head -n 1 ~/.ssh/id_rsa
-        echo "SSH key last line:"
-        tail -n 1 ~/.ssh/id_rsa
-        echo "Test SSH connection with hardcoded values:"
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o ConnectTimeout=10 ec2-user@3.208.9.63 "echo 'SSH works'"
-        
-    - name: Deploy to Amazon Linux EC2
+    - name: Deploy to EC2
       run: |
         scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r build/* ec2-user@3.208.9.63:~/
-        
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@3.208.9.63 '
           sudo rm -rf /usr/share/nginx/html/*
           sudo cp -r ~/* /usr/share/nginx/html/
           sudo systemctl restart nginx
-          echo "Deployment completed successfully"
         '
