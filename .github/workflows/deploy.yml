@@ -8,22 +8,26 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
+      
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: 18
+        
     - name: Install dependencies
       run: npm ci
+      
     - name: Build React app
       run: |
         export NODE_OPTIONS=--openssl-legacy-provider
         npm run build
+        
     - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H 3.208.9.63 >> ~/.ssh/known_hosts
         
     - name: Debug secrets and SSH setup
       run: |
@@ -35,10 +39,10 @@ jobs:
         head -n 1 ~/.ssh/id_rsa
         echo "SSH key last line:"
         tail -n 1 ~/.ssh/id_rsa
-        echo "Test SSH connection:"
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "echo 'SSH works'"
+        echo "Test SSH connection with hardcoded values:"
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o ConnectTimeout=10 ec2-user@3.208.9.63 "echo 'SSH works'"
         
     - name: Deploy to Amazon Linux EC2
       run: |
-        scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r build/* ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/usr/share/nginx/html/
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} 'sudo systemctl restart nginx'
+        scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r build/* ec2-user@3.208.9.63:/usr/share/nginx/html/
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@3.208.9.63 'sudo systemctl restart nginx'
