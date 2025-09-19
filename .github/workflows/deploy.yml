@@ -44,5 +44,11 @@ jobs:
         
     - name: Deploy to Amazon Linux EC2
       run: |
-        scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r build/* ec2-user@3.208.9.63:/usr/share/nginx/html/
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@3.208.9.63 'sudo systemctl restart nginx'
+        scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r build/* ec2-user@3.208.9.63:~/
+        
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@3.208.9.63 '
+          sudo rm -rf /usr/share/nginx/html/*
+          sudo cp -r ~/* /usr/share/nginx/html/
+          sudo systemctl restart nginx
+          echo "Deployment completed successfully"
+        '
