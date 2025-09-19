@@ -25,37 +25,14 @@ jobs:
         export NODE_OPTIONS=--openssl-legacy-provider
         npm run build
 
-    - name: Setup SSH (write key, perms, known_hosts)
+    - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-    - name: Verify SSH key and permissions
-      run: |
-        echo "== List ~/.ssh =="
-        ls -l ~/.ssh
-        echo
-        echo "== Permissions (expect -rw------- for id_rsa) =="
-        stat -c "%A %n" ~/.ssh/id_rsa || stat -f "%Sp %N" ~/.ssh/id_rsa
-        echo
-        echo "== BEGIN/END markers =="
-        head -n 2 ~/.ssh/id_rsa
-        tail -n 2 ~/.ssh/id_rsa
-        echo
-        echo "== Fingerprint =="
-        ssh-keygen -lf ~/.ssh/id_rsa || true
-
-     - name: Setup SSH key
-  run: |
-    mkdir -p ~/.ssh
-    echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-    chmod 600 ~/.ssh/id_rsa
-    ssh-keyscan -H <34.227.224.67> >> ~/.ssh/known_hosts
-    
     - name: Deploy to Amazon Linux EC2
       run: |
         scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r build/* ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/usr/share/nginx/html/
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} 'sudo systemctl restart nginx'
-
