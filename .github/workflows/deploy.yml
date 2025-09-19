@@ -24,18 +24,12 @@ jobs:
         export NODE_OPTIONS=--openssl-legacy-provider
         npm run build
 
-    - name: Setup SSH Key and Known Hosts
+    - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
-    - name: Debug SSH key and config
-      run: |
-        ls -la ~/.ssh
-        cat ~/.ssh/id_rsa
-        cat ~/.ssh/known_hosts
 
     - name: Deploy build to Amazon Linux EC2
       run: |
