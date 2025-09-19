@@ -9,7 +9,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repo
+      uses: actions/checkout@v4
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -24,14 +25,29 @@ jobs:
         export NODE_OPTIONS=--openssl-legacy-provider
         npm run build
 
-    - name: Setup SSH
+    - name: Setup SSH (write key, perms, known_hosts)
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-    - name: Deploy build to Amazon Linux EC2
+    - name: Verify SSH key and permissions
+      run: |
+        echo "== List ~/.ssh =="
+        ls -l ~/.ssh
+        echo
+        echo "== Permissions (expect -rw------- for id_rsa) =="
+        stat -c "%A %n" ~/.ssh/id_rsa || stat -f "%Sp %N" ~/.ssh/id_rsa
+        echo
+        echo "== BEGIN/END markers =="
+        head -n 2 ~/.ssh/id_rsa
+        tail -n 2 ~/.ssh/id_rsa
+        echo
+        echo "== Fingerprint =="
+        ssh-keygen -lf ~/.ssh/id_rsa || true
+
+    - name: Deploy to Amazon Linux EC2
       run: |
         scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r build/* ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/usr/share/nginx/html/
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} 'sudo systemctl restart nginx'
