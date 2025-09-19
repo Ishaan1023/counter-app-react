@@ -26,6 +26,7 @@ jobs:
 
     - name: Add SSH key
       run: |
+        mkdir -p ~/.ssh
         echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
         chmod 600 key.pem
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
