@@ -25,8 +25,19 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
         
-    - name: Add remote host to known_hosts
-      run: ssh-keyscan -H 3.208.9.63 >> ~/.ssh/known_hosts
+    - name: Debug secrets and SSH setup
+      run: |
+        echo "EC2_HOST: ${{ secrets.EC2_HOST }}"
+        echo "EC2_USERNAME: ${{ secrets.EC2_USERNAME }}"
+        echo "SSH key file exists:"
+        ls -la ~/.ssh/id_rsa
+        echo "SSH key first line:"
+        head -n 1 ~/.ssh/id_rsa
+        echo "SSH key last line:"
+        tail -n 1 ~/.ssh/id_rsa
+        echo "Test SSH connection:"
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "echo 'SSH works'"
+        
     - name: Deploy to Amazon Linux EC2
       run: |
         scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r build/* ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/usr/share/nginx/html/
