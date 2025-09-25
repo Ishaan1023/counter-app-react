@@ -30,14 +30,13 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H 35.175.186.181 >> ~/.ssh/known_hosts
+        ssh-keyscan -H 54.221.133.185 >> ~/.ssh/known_hosts
 
     - name: Deploy to EC2
       run: |
-        scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r build/* ec2-user@35.175.186.181:~/
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@35.175.186.181 '
+        scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r build/* ec2-user@54.221.133.185:~/
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@54.221.133.185 
           sudo rm -rf /usr/share/nginx/html/*
           sudo cp -r ~/* /usr/share/nginx/html/
           sudo systemctl restart nginx
-        '
         
