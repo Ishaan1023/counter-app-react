@@ -34,9 +34,9 @@ jobs:
 
     - name: Deploy to EC2
       run: |
+
         scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r build/* ec2-user@54.221.133.185:~/
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@54.221.133.185 
           sudo rm -rf /usr/share/nginx/html/*
           sudo cp -r ~/* /usr/share/nginx/html/
           sudo systemctl restart nginx
-        
