@@ -1,0 +1,89 @@
+- name: Deploy React Counter App to EC2
+  hosts: webservers
+  become: yes
+  gather_facts: yes
+  
+  vars:
+    app_name: counter-app-react
+    app_path: /var/www/{{ app_name }}
+    github_repo: "https://github.com/{{ github_user }}/{{ app_name }}.git"
+    
+  tasks:
+    - name: Update yum and install packages
+      yum:
+        name:
+          - nginx
+          - git
+          - nodejs
+          - npm
+        state: present
+        
+    - name: Create /var/www directory
+      file:
+        path: /var/www
+        state: directory
+        mode: '0755'
+        
+    - name: Remove existing app directory
+      file:
+        path: "{{ app_path }}"
+        state: absent
+        
+    - name: Create app directory with proper ownership
+      file:
+        path: "{{ app_path }}"
+        state: directory
+        owner: ec2-user
+        group: ec2-user
+        mode: '0755'
+        
+    - name: Clone React application
+      git:
+        repo: "{{ github_repo }}"
+        dest: "{{ app_path }}"
+        version: main
+        force: yes
+      become_user: ec2-user
+      
+    - name: Install npm dependencies
+      npm:
+        path: "{{ app_path }}"
+        state: present
+      become_user: ec2-user
+      
+    - name: Build React application
+      command: npm run build
+      args:
+        chdir: "{{ app_path }}"
+      become_user: ec2-user
+      environment:
+        NODE_OPTIONS: --openssl-legacy-provider
+        
+    - name: Configure Nginx
+      copy:
+        content: |
+          server {
+              listen 80 default_server;
+              root {{ app_path }}/build;
+              index index.html;
+              server_name _;
+              
+              location / {
+                  try_files $uri $uri/ /index.html;
+              }
+          }
+        dest: /etc/nginx/conf.d/react-app.conf
+      notify: restart nginx
+      
+    - name: Start and enable nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+        
+  handlers:
+    - name: restart nginx
+      systemd:
+        name: nginx
+        state: restarted
+

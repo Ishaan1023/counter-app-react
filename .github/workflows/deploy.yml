@@ -1,42 +1,32 @@
-name: Deploy React App to Amazon Linux EC2
+name: Deploy to EC2
 
 on:
   push:
     branches: [main]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        
+      - name: Install Ansible
+        run: pip install ansible
+          
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/key.pem
+          chmod 400 ~/.ssh/key.pem
+          ssh-keyscan ${{ secrets.EC2_IP }} >> ~/.ssh/known_hosts
+          
+      - name: Deploy
+        run: |
+          cd ansible
+          echo "[webservers]" > inventory.ini
+          echo "${{ secrets.EC2_IP }} ansible_user=ec2-user ansible_ssh_private_key_file=~/.ssh/key.pem" >> inventory.ini
+          echo "[webservers:vars]" >> inventory.ini
+          echo "ansible_python_interpreter=/usr/bin/python3" >> inventory.ini
+          ansible-playbook deploy.yml -e "github_user=Ishaan1023"
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 18
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Build React app
-      run: |
-        export NODE_OPTIONS=--openssl-legacy-provider
-        npm run build
-
-    - name: Setup SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H 54.221.133.185 >> ~/.ssh/known_hosts
-
-    - name: Deploy to EC2
-      run: |
-
-        scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r build/* ec2-user@54.221.133.185:~/
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@54.221.133.185 
-          sudo rm -rf /usr/share/nginx/html/*
-          sudo cp -r ~/* /usr/share/nginx/html/
-          sudo systemctl restart nginx
